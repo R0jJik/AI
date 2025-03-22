@@ -1,20 +1,70 @@
 import re
+import webbrowser
+import requests
 import random
 import datetime
-import pyowm
 
 
 
-api_key="*********"
-owm = pyowm.OWM(api_key)
-weather_mgr=owm.weather_manager()
-plase="Nizhniy Novgorod, RU"
-NNovgorod=weather_mgr.weather_at_place(plase)
+api_key="212400d854618af6cab9a91302fc8e70"
 
 
-hello=["Привет! Как я могу помочь?",
-       "Здравствуйте! Нужна моя помощь?",
-       "Приветствую! Задавай интересующие вопросы."]
+
+name="Бот"
+
+
+hello=["Привет! Как я могу помочь тебе сегодня?",
+       "Здравствуй! Рад тебя видеть. Есть что-то, с чем я могу помочь?",
+       "Привет! Что интересного у тебя на уме?",
+       "Здравствуйте! Как проходит ваш день?",
+       "Привет! Чем могу помочь?"]
+skills=["Как тебя зовут?","Какой сегодня день?","Какая сейчас погода?","который час?",f"5+16"]
+time=["Сейчас", "На часах", "Подсказываю, сейчас"]
+err=["Я не понял вопрос", "Попробуйте перефразировать","Тяжелый вопрос для меня, сформулируй его по другому"]
+calt=["Результат вычисления:","Возможно это будет","Возможно для тебя это будет слишком сложно, но ответ"]
+goodbye=["Спасибо за общение! Если у вас появятся вопросы, не стесняйтесь возвращаться. До новых встреч!",
+            "Было приятно помочь! Желаю вам удачного дня. До новых разговоров!",
+            "Заходите снова! У нас много интересного. Прощайте и всего хорошего!",
+            "Спасибо за ваше время! Надеюсь, я был полезен. Удачи вам и до скорой встречи!",
+            "Время нашего общения подошло к концу. Но я всегда здесь, если вам снова понадобится помощь. Пока!",
+            "Это был интересный разговор! Надеюсь, вы нашли ответы на свои вопросы. До свидания и заботьтесь о себе!"]
+def this_name():
+    I_am=[f"Я {name}-помощник!",
+          f"Я — ваш ассистент-помощник. Вы можете звать меня {name}!",
+          f"Меня зовут {name}. Как я могу вам помочь сегодня?",
+          f"Привет! Меня зовут {name}, я рад помочь вам в любом вопросе!"]
+    return random.choice(I_am)
+
+
+def log_dialog(user_input, bot_response):
+    data = datetime.datetime.now()
+    with open("chat_log.txt", "a", encoding="utf-8") as log_file:
+        log_file.write(f"Время запроса: {datetime.date.today()} {data.hour}:{data.minute}:{data.second}\n")
+        log_file.write(f"Пользователь: {user_input}\n")
+        log_file.write(f"{name}: {bot_response}\n")
+        log_file.write("-" * 60 + "\n")
+
+
+def search_web(query):
+    url = f"https://www.google.com/search?q={query}"
+    webbrowser.open(url)
+    return f"Открываю браузер с результатами поиска: {query}"
+
+def Rename(text):
+    s="\S+"
+    a=re.findall(s,text)
+    k=0
+    if a[1]=="ты":
+        k=2
+    else:
+        k=3
+    global name
+    name = a[k]
+    if len(a)>k+1:
+        for i in range(k+1,len(a)):
+            name=name+" "
+            name=name+a[i]
+    return f"Теперь меня зовут {name}"
 
 def calculation(text):
     nub="(\d+)"
@@ -61,47 +111,82 @@ def calculation(text):
                     return (nub1 / nub2)
 
 
-def weather_print():
-    temperature = NNovgorod.weather.temperature("celsius")["temp"]
-    humidity = NNovgorod.weather.humidity
-    wind = NNovgorod.weather.wind()
-    return (f'Текущая температура: {temperature}°C\n'
-            f'Текущая влажность воздуха: {humidity}%\n'
-            f'Текущая скорость ветра: {wind["speed"]} в м/с')
+def weather_print(text):
+    s = "\S+"
+    a = re.findall(s, text)
+    city=a[2]
+    if len(a)>3:
+        for i in range(3,len(a)):
+            city=city+" "
+            city=city+a[i]
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric&lang=ru"
+    response=requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        temp = data["main"]["temp"]
+        wind = data["wind"]["speed"]
+        humidity = data["main"]["humidity"]
+        weather_desc = data["weather"][0]["description"]
+        return (f"В городе {city} сейчас {weather_desc} при температуре {temp}°C. "
+                f"Скорость ветра составляет {wind} в м/c, влажность равна {humidity} %")
+    else:
+        return "Не удалось получить информацию о погоде. Попробуйте другой город."
 
 
 def data_print():
     data = datetime.datetime.now()
-    return f"Время посчитано до компиляции: {data.hour}:{data.minute}:{data.second}"
+    return f"{random.choice(time)} {data.hour}:{data.minute}:{data.second}"
 
 # Определяем словарь шаблонов и ответов
 responses = {
-    r"привет|здравствуйте|хэллоу|салют" : random.choice(hello),
-    r"как тебя зовут\?|твое имя?": "Я бот-помощник!",
-    r"что ты умеешь\?": "Я умею отвечать на простые вопросы(время, дата, погода, базавая арифметика)."
-                        "\nПопробуй спросить: 'Как тебя зовут?'",
-    r"время" : data_print(),
-    r"дата" : datetime.date.today(),
-    r"погода" : weather_print(),
-    r"[*/](\d+)\s*([+*/\-])\s*(\d+)" : "арифметическое выражение не может начинаться с * или /"
+    r"привет|здравствуйте|хэллоу|салют" : lambda m: random.choice(hello),
+    r"как тебя зовут\?|твое имя\?": lambda m: this_name(),
+    r"что ты умеешь\?|твои навыки\?": lambda m: f"Я умею отвечать на простые вопросы(время, дата, погода, базавая арифметика)."
+                        f"\nПопробуй спросить: {random.choice(skills)}",
+    r"время|который час\?" : lambda m: data_print(),
+    r"дата|какой сегодня день\?": lambda m: datetime.date.today(),
+    r"погода в (.+)" :lambda m: weather_print(user_input),
+    r"[*/](\d+)\s*([+*/\-])\s*(\d+)" : "арифметическое выражение не может начинаться с * или /",
 }
 arithmetic="(\d+)\s*([+*/\-])\s*(\d+)"
-
+rename="теперь тебя зовут (.+)|теперь ты (.+)"
 
 def chatbot_response(text):
     text = text.lower()  # Приведение к нижнему регистру для унификации
+
+    match = re.search(r"поиск\s+(.+)", text)
+    if match:
+        query = match.group(1)
+        response = search_web(query)
+        log_dialog(text, response)
+        return response
+
     for pattern, response in responses.items():
-        if re.search(pattern, text):
-            return response
+        match = re.search(re.compile(pattern), text)
+        if match:
+            answer = response(match)
+            log_dialog(text, answer)
+            return answer
     if re.search(arithmetic,text):
-        return f"Результат выражения: {calculation(text)}"
-    return random.choice(["Я не понял вопрос.", "Попробуйте перефразировать."])
+        answer = f"{random.choice(calt)} {calculation(text)}"
+    elif re.search(rename,text):
+        answer = Rename(user_input)
+    else:
+        answer = random.choice(err)
+    log_dialog(text, answer)
+    return answer
+
 
 if __name__ == "__main__":
+    with open("chat_log.txt", "a", encoding="utf-8") as log_file:
+        log_file.write(f"История запросов\n")
+        log_file.write("-" * 60 + "\n")
+
+
     print("Введите 'выход' для завершения диалога.")
     while True:
         user_input = input("Вы: ")
         if user_input.lower() == "выход":
-            print("Бот: До свидания!")
+            print(f"{name}: {random.choice(goodbye)}")
             break
-        print("Бот:", chatbot_response(user_input))
+        print(f"{name}:", chatbot_response(user_input))

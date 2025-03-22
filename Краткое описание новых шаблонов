@@ -1,87 +1,94 @@
-Новое приведствие:
-r"привет|здравствуйте|хэллоу|салют" : random.choice(hello)
-hello=["Привет! Как я могу помочь?",
-       "Здравствуйте! Нужна моя помощь?",
-       "Приветствую! Задавай интересующие вопросы."]
+Добавлена вареативность ответов:
+hello=["Привет! Как я могу помочь тебе сегодня?",
+       "Здравствуй! Рад тебя видеть. Есть что-то, с чем я могу помочь?",
+       "Привет! Что интересного у тебя на уме?",
+       "Здравствуйте! Как проходит ваш день?",
+       "Привет! Чем могу помочь?"]
+skills=["Как тебя зовут?","Какой сегодня день?","Какая сейчас погода?","который час?",f"5+16"]
+time=["Сейчас", "На часах", "Подсказываю, сейчас"]
+err=["Я не понял вопрос", "Попробуйте перефразировать","Тяжелый вопрос для меня, сформулируй его по другому"]
+calt=["Результат вычисления:","Возможно это будет","Возможно для тебя это будет слишком сложно, но ответ"]
+goodbye=["Спасибо за общение! Если у вас появятся вопросы, не стесняйтесь возвращаться. До новых встреч!",
+            "Было приятно помочь! Желаю вам удачного дня. До новых разговоров!",
+            "Заходите снова! У нас много интересного. Прощайте и всего хорошего!",
+            "Спасибо за ваше время! Надеюсь, я был полезен. Удачи вам и до скорой встречи!",
+            "Время нашего общения подошло к концу. Но я всегда здесь, если вам снова понадобится помощь. Пока!",
+            "Это был интересный разговор! Надеюсь, вы нашли ответы на свои вопросы. До свидания и заботьтесь о себе!"]
+def this_name():
+    I_am=[f"Я {name}-помощник!",
+          f"Я — ваш ассистент-помощник. Вы можете звать меня {name}!",
+          f"Меня зовут {name}. Как я могу вам помочь сегодня?",
+          f"Привет! Меня зовут {name}, я рад помочь вам в любом вопросе!"]
+    return random.choice(I_am)
 
-Дополнительная вареативность ответов:
-r"как тебя зовут\?|твое имя?": "Я бот-помощник!"
-r"что ты умеешь\?": "Я умею отвечать на простые вопросы(время, дата, погода, базавая арифметика)."
-                        "\nПопробуй спросить: 'Как тебя зовут?'"
 
-Добавление даты и времяни:
- r"время" : data_print()
-def data_print():
+Добавлена история запросов:
+    with open("chat_log.txt", "a", encoding="utf-8") as log_file:
+        log_file.write(f"История запросов\n")
+        log_file.write("-" * 60 + "\n")
+def log_dialog(user_input, bot_response):
     data = datetime.datetime.now()
-    return f"Время посчитано до компиляции: {data.hour}:{data.minute}:{data.second}"
-r"дата" : datetime.date.today()
+    with open("chat_log.txt", "a", encoding="utf-8") as log_file:
+        log_file.write(f"Время запроса: {datetime.date.today()} {data.hour}:{data.minute}:{data.second}\n")
+        log_file.write(f"Пользователь: {user_input}\n")
+        log_file.write(f"{name}: {bot_response}\n")
+        log_file.write("-" * 60 + "\n")
 
-Добавление алгоритма вывода погодных данных с помощью pyowm:
-api_key="******"
-owm = pyowm.OWM(api_key)
-weather_mgr=owm.weather_manager()
-plase="Nizhniy Novgorod, RU"
-NNovgorod=weather_mgr.weather_at_place(plase)
 
-def weather_print():
-    temperature = NNovgorod.weather.temperature("celsius")["temp"]
-    humidity = NNovgorod.weather.humidity
-    wind = NNovgorod.weather.wind()
-    return (f'Текущая температура: {temperature}°C\n'
-            f'Текущая влажность воздуха: {humidity}%\n'
-            f'Текущая скорость ветра: {wind["speed"]} в м/с')
+Добавлена функия поиска в интернете:
+match = re.search(r"поиск\s+(.+)", text)
+    if match:
+        query = match.group(1)
+        response = search_web(query)
+        log_dialog(text, response)
+        return response
 
-r"погода" : weather_print()
+def search_web(query):
+    url = f"https://www.google.com/search?q={query}"
+    webbrowser.open(url)
+    return f"Открываю браузер с результатами поиска: {query}"
 
-Анализ и обработка арефметических выражений:
-r"[*/](\d+)\s*([+*/\-])\s*(\d+)" : "арифметическое выражение не может начинаться с * или /"
-arithmetic="(\d+)\s*([+*/\-])\s*(\d+)"
-if re.search(arithmetic,text):
-    return f"Результат выражения: {calculation(text)}"
-def calculation(text):
-    nub="(\d+)"
-    sign="([+*/\-])"
-    a=re.findall(nub,text)
-    b=re.findall(sign,text)
-    nubt1=a[0]
-    nubt2=a[1]
-    nub1=float(nubt1)
-    nub2=float(nubt2)
-    if len(b)>1:
-        if b[0]=="-":
-            if b[1] == '+':
-                return (-nub1 + nub2)
-            else:
-                if b[1] == '-':
-                    return (-nub1 - nub2)
-                else:
-                    if b[1] == '*':
-                        return (-nub1 * nub2)
-                    else:
-                        return (-nub1 / nub2)
-        else:
-            if b[1] == '+':
-                return (nub1 + nub2)
-            else:
-                if b[1] == '-':
-                    return (nub1 - nub2)
-                else:
-                    if b[1] == '*':
-                        return (nub1 * nub2)
-                    else:
-                        return (nub1 / nub2)
+Добавлена функия переименования бота:
+rename="теперь тебя зовут (.+)|теперь ты (.+)"
+    elif re.search(rename,text):
+        answer = Rename(user_input)
+def Rename(text):
+    s="\S+"
+    a=re.findall(s,text)
+    k=0
+    if a[1]=="ты":
+        k=2
     else:
-        if b[0] =='+':
-            return (nub1+nub2)
-        else:
-            if b[0] =='-':
-                return (nub1 - nub2)
-            else:
-                if b[0] =='*':
-                    return (nub1 * nub2)
-                else:
-                    return (nub1 / nub2)
+        k=3
+    global name
+    name = a[k]
+    if len(a)>k+1:
+        for i in range(k+1,len(a)):
+            name=name+" "
+            name=name+a[i]
+    return f"Теперь меня зовут {name}"
 
-Вареативность обработки неизвестных сообщений:
-return random.choice(["Я не понял вопрос.", "Попробуйте перефразировать."])
+Изменена функция погоды:
+ r"погода в (.+)" :lambda m: weather_print(user_input),
+def weather_print(text):
+    s = "\S+"
+    a = re.findall(s, text)
+    city=a[2]
+    if len(a)>3:
+        for i in range(3,len(a)):
+            city=city+" "
+            city=city+a[i]
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric&lang=ru"
+    response=requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        temp = data["main"]["temp"]
+        wind = data["wind"]["speed"]
+        humidity = data["main"]["humidity"]
+        weather_desc = data["weather"][0]["description"]
+        return (f"В городе {city} сейчас {weather_desc} при температуре {temp}°C. "
+                f"Скорость ветра составляет {wind} в м/c, влажность равна {humidity} %")
+    else:
+        return "Не удалось получить информацию о погоде. Попробуйте другой город."
 
+Теперь все данные берутся после сборки поекта
