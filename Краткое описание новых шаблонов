@@ -1,0 +1,87 @@
+Новое приведствие:
+r"привет|здравствуйте|хэллоу|салют" : random.choice(hello)
+hello=["Привет! Как я могу помочь?",
+       "Здравствуйте! Нужна моя помощь?",
+       "Приветствую! Задавай интересующие вопросы."]
+
+Дополнительная вареативность ответов:
+r"как тебя зовут\?|твое имя?": "Я бот-помощник!"
+r"что ты умеешь\?": "Я умею отвечать на простые вопросы(время, дата, погода, базавая арифметика)."
+                        "\nПопробуй спросить: 'Как тебя зовут?'"
+
+Добавление даты и времяни:
+ r"время" : data_print()
+def data_print():
+    data = datetime.datetime.now()
+    return f"Время посчитано до компиляции: {data.hour}:{data.minute}:{data.second}"
+r"дата" : datetime.date.today()
+
+Добавление алгоритма вывода погодных данных с помощью pyowm:
+api_key="******"
+owm = pyowm.OWM(api_key)
+weather_mgr=owm.weather_manager()
+plase="Nizhniy Novgorod, RU"
+NNovgorod=weather_mgr.weather_at_place(plase)
+
+def weather_print():
+    temperature = NNovgorod.weather.temperature("celsius")["temp"]
+    humidity = NNovgorod.weather.humidity
+    wind = NNovgorod.weather.wind()
+    return (f'Текущая температура: {temperature}°C\n'
+            f'Текущая влажность воздуха: {humidity}%\n'
+            f'Текущая скорость ветра: {wind["speed"]} в м/с')
+
+r"погода" : weather_print()
+
+Анализ и обработка арефметических выражений:
+r"[*/](\d+)\s*([+*/\-])\s*(\d+)" : "арифметическое выражение не может начинаться с * или /"
+arithmetic="(\d+)\s*([+*/\-])\s*(\d+)"
+if re.search(arithmetic,text):
+    return f"Результат выражения: {calculation(text)}"
+def calculation(text):
+    nub="(\d+)"
+    sign="([+*/\-])"
+    a=re.findall(nub,text)
+    b=re.findall(sign,text)
+    nubt1=a[0]
+    nubt2=a[1]
+    nub1=float(nubt1)
+    nub2=float(nubt2)
+    if len(b)>1:
+        if b[0]=="-":
+            if b[1] == '+':
+                return (-nub1 + nub2)
+            else:
+                if b[1] == '-':
+                    return (-nub1 - nub2)
+                else:
+                    if b[1] == '*':
+                        return (-nub1 * nub2)
+                    else:
+                        return (-nub1 / nub2)
+        else:
+            if b[1] == '+':
+                return (nub1 + nub2)
+            else:
+                if b[1] == '-':
+                    return (nub1 - nub2)
+                else:
+                    if b[1] == '*':
+                        return (nub1 * nub2)
+                    else:
+                        return (nub1 / nub2)
+    else:
+        if b[0] =='+':
+            return (nub1+nub2)
+        else:
+            if b[0] =='-':
+                return (nub1 - nub2)
+            else:
+                if b[0] =='*':
+                    return (nub1 * nub2)
+                else:
+                    return (nub1 / nub2)
+
+Вареативность обработки неизвестных сообщений:
+return random.choice(["Я не понял вопрос.", "Попробуйте перефразировать."])
+
