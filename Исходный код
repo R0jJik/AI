@@ -1,25 +1,29 @@
 import re
 import webbrowser
+from re import findall
+
 import requests
 import random
 import datetime
+from textblob import TextBlob
+from googletrans import Translator
+import spacy
+
 
 
 
 api_key="212400d854618af6cab9a91302fc8e70"
 
-
-
 name="Бот"
+pol=0
 
-
-hello=["Привет! Как я могу помочь тебе сегодня?",
-       "Здравствуй! Рад тебя видеть. Есть что-то, с чем я могу помочь?",
-       "Привет! Что интересного у тебя на уме?",
-       "Здравствуйте! Как проходит ваш день?",
-       "Привет! Чем могу помочь?"]
-skills=["Как тебя зовут?","Какой сегодня день?","Какая сейчас погода?","который час?",f"5+16"]
-time=["Сейчас", "На часах", "Подсказываю, сейчас"]
+hello=["Привет! Как я могу помочь тебе сегодня? ",
+       "Здравствуй! Рад тебя видеть. Есть что-то, с чем я могу помочь? ",
+       "Привет! Что интересного у тебя на уме? ",
+       "Здравствуйте! Как проходит ваш день? ",
+       "Привет! Чем могу помочь? "]
+skills=["Как тебя зовут? ","Какой сегодня день? ","Какая сейчас погода? ","который час? ","5+16 "]
+time=["Сейчас ", "На часах ", "Подсказываю, сейчас "]
 err=["Я не понял вопрос", "Попробуйте перефразировать","Тяжелый вопрос для меня, сформулируй его по другому"]
 calt=["Результат вычисления:","Возможно это будет","Возможно для тебя это будет слишком сложно, но ответ"]
 goodbye=["Спасибо за общение! Если у вас появятся вопросы, не стесняйтесь возвращаться. До новых встреч!",
@@ -28,11 +32,53 @@ goodbye=["Спасибо за общение! Если у вас появятс�
             "Спасибо за ваше время! Надеюсь, я был полезен. Удачи вам и до скорой встречи!",
             "Время нашего общения подошло к концу. Но я всегда здесь, если вам снова понадобится помощь. Пока!",
             "Это был интересный разговор! Надеюсь, вы нашли ответы на свои вопросы. До свидания и заботьтесь о себе!"]
+dela=["Хорошо, спасибо! А у тебя? ",
+    "Нормально, пока держимся 😊 ",
+    "Всё отлично! Как сам? ",
+    "Как в сказке — много дел, но я на коне! ",
+    "Пока не жалуюсь! ",
+    "Всё прекрасно, особенно когда тебя вижу! ",
+    "Терпимо. А как ты? ",
+    "Как обычно: работа, дом, спорт. А у тебя что нового? ",
+    "Пока всё хорошо, надеюсь, так и продолжится! "]
+priv=["привет" , "приветствовать" , "салют" , 'хай' , 'йоу' , 'дарова' , 'приветики' , 'шалом' , 'бонжур' , "хэллоу"]
+
+
+
+
+
+
+nlp = spacy.load("ru_core_news_sm")
+
+def process_text(text):
+    doc=nlp(text)
+    tokens=[token.lemma_ for token in doc]
+    return tokens
+
+
+def analyze_sentiment(text):
+    global pol
+    texten=Translator().translate(text, dest="en").text
+    blop=TextBlob(texten)
+    polarity=blop.sentiment.polarity
+    if polarity>0.2 and pol<=0:
+        pol = 1
+        return f"Кстати я заметил, что сегодня ты счастливый!😁😆 "
+    elif polarity<-0.1 and pol>=0:
+        pol = -1
+        return f"Не грусти! 👺 "
+    elif pol!=0 and -0.1<polarity<0.2:
+        pol = 0
+        return "О, ты успокоился. 😘 "
+    else:
+        return ""
+
+
 def this_name():
     I_am=[f"Я {name}-помощник!",
-          f"Я — ваш ассистент-помощник. Вы можете звать меня {name}!",
-          f"Меня зовут {name}. Как я могу вам помочь сегодня?",
-          f"Привет! Меня зовут {name}, я рад помочь вам в любом вопросе!"]
+          f"Я — ваш ассистент-помощник. Вы можете звать меня {name}! ",
+          f"Меня зовут {name}. Как я могу вам помочь сегодня? ",
+          f"Меня зовут {name}, я рад помочь вам в любом вопросе! "]
     return random.choice(I_am)
 
 
@@ -45,26 +91,34 @@ def log_dialog(user_input, bot_response):
         log_file.write("-" * 60 + "\n")
 
 
-def search_web(query):
-    url = f"https://www.google.com/search?q={query}"
-    webbrowser.open(url)
-    return f"Открываю браузер с результатами поиска: {query}"
-
-def Rename(text):
-    s="\S+"
-    a=re.findall(s,text)
-    k=0
-    if a[1]=="ты":
-        k=2
+def search_web(text, tokens):
+    if "в" and "интернет" in tokens:
+        query=r'"(.*?)"'
+        querys=findall(query,text)
+        j=len(querys)
+        if j!=0:
+            for i in range(j):
+                url = f"https://www.google.com/search?q={querys[i]}"
+                webbrowser.open(url)
+            return f"Открываю браузер с результатами поиска: {querys}. "
+        else:
+            return f"То что вы хотите найти должно быть в довойных кавычках. "
     else:
-        k=3
-    global name
-    name = a[k]
-    if len(a)>k+1:
-        for i in range(k+1,len(a)):
-            name=name+" "
-            name=name+a[i]
-    return f"Теперь меня зовут {name}"
+        return f"Возможно вы хотели найти что-то в интернете. Тогда добавьте к поиску словосочетание 'в интернете'. "
+
+def Rename(text, tokens):
+    nam=r'"(.*?)"'
+    nams=findall(nam,text)
+    j=len(nams)
+    if j==1:
+        global name
+        name = nams[0]
+        return f"УРА! Теперь меня зовут {name} 😃 "
+    if j==0:
+        return f"Чтобы переименовать меня нужно указат имя в двойных кавычках. "
+    else:
+        return f"Не понимаю в каких кавычках мое имя. Напиши имя в двойны кавычках и не используй их в это сообщении дальше. "
+
 
 def calculation(text):
     nub="(\d+)"
@@ -112,70 +166,80 @@ def calculation(text):
 
 
 def weather_print(text):
-    s = "\S+"
-    a = re.findall(s, text)
-    city=a[2]
-    if len(a)>3:
-        for i in range(3,len(a)):
-            city=city+" "
-            city=city+a[i]
-    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric&lang=ru"
-    response=requests.get(url)
-    if response.status_code == 200:
-        data = response.json()
-        temp = data["main"]["temp"]
-        wind = data["wind"]["speed"]
-        humidity = data["main"]["humidity"]
-        weather_desc = data["weather"][0]["description"]
-        return (f"В городе {city} сейчас {weather_desc} при температуре {temp}°C. "
+    s = r'"(.*?)"'
+    citys = findall(s, text)
+    j = len(citys)
+    if j == 1:
+        url = f"http://api.openweathermap.org/data/2.5/weather?q={citys[0]}&appid={api_key}&units=metric&lang=ru"
+        response=requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            temp = data["main"]["temp"]
+            wind = data["wind"]["speed"]
+            humidity = data["main"]["humidity"]
+            weather_desc = data["weather"][0]["description"]
+            return (f"В городе {citys[0]} сейчас {weather_desc} при температуре {temp}°C. "
                 f"Скорость ветра составляет {wind} в м/c, влажность равна {humidity} %")
+        else:
+            return "Не удалось получить информацию о погоде. Попробуйте другой город. "
+    elif j == 0:
+        return "Если вы хотите найти информацию о погоде  в городе, укажите город в двойных кавычках "
     else:
-        return "Не удалось получить информацию о погоде. Попробуйте другой город."
-
+        return "Не понимаю в каких кавычках название города. Напиши город в двойны кавычках и не используй их в это сообщении дальше. "
 
 def data_print():
     data = datetime.datetime.now()
     return f"{random.choice(time)} {data.hour}:{data.minute}:{data.second}"
 
-# Определяем словарь шаблонов и ответов
-responses = {
-    r"привет|здравствуйте|хэллоу|салют" : lambda m: random.choice(hello),
-    r"как тебя зовут\?|твое имя\?": lambda m: this_name(),
-    r"что ты умеешь\?|твои навыки\?": lambda m: f"Я умею отвечать на простые вопросы(время, дата, погода, базавая арифметика)."
-                        f"\nПопробуй спросить: {random.choice(skills)}",
-    r"время|который час\?" : lambda m: data_print(),
-    r"дата|какой сегодня день\?": lambda m: datetime.date.today(),
-    r"погода в (.+)" :lambda m: weather_print(user_input),
-    r"[*/](\d+)\s*([+*/\-])\s*(\d+)" : "арифметическое выражение не может начинаться с * или /",
-}
-arithmetic="(\d+)\s*([+*/\-])\s*(\d+)"
-rename="теперь тебя зовут (.+)|теперь ты (.+)"
 
 def chatbot_response(text):
+
     text = text.lower()  # Приведение к нижнему регистру для унификации
+    tokens=process_text(text)
+    response=""
+    if ("поиск" in  tokens) or ((("найдите" in  tokens) or ("найти" in  tokens) or ("найди"in  tokens)) and ("в" in  tokens) and ("интернет" in  tokens)):
+        response = response + f"{search_web(text, tokens)}"
 
-    match = re.search(r"поиск\s+(.+)", text)
-    if match:
-        query = match.group(1)
-        response = search_web(query)
-        log_dialog(text, response)
-        return response
+    if (("как" in  tokens) and ("дело"  in  tokens)) or (("как" in  tokens) and ("делишки"  in  tokens)):
+        wt = lambda m: f"{random.choice(dela)}"
+        response = response + wt(0)
+    elif any(elem in tokens for elem in priv):
+        ot = lambda m: f"{random.choice(hello)}"
+        response = response + ot(0)
 
-    for pattern, response in responses.items():
-        match = re.search(re.compile(pattern), text)
-        if match:
-            answer = response(match)
-            log_dialog(text, answer)
-            return answer
-    if re.search(arithmetic,text):
-        answer = f"{random.choice(calt)} {calculation(text)}"
-    elif re.search(rename,text):
-        answer = Rename(user_input)
-    else:
-        answer = random.choice(err)
-    log_dialog(text, answer)
-    return answer
+    if (("как" in tokens) and ("тебя" in tokens) and ("звать" in tokens)) or ((("твой" in  tokens) or ("твоё" in  tokens)) and "имя" in tokens):
+        nt=lambda m: this_name()
+        response = response + nt(0)
+    elif (("теперь" in tokens) and ("тебя" in tokens) and ("звать" in tokens)) or (("теперь" in tokens) and ("ты" in tokens)):
+        rt=lambda m: Rename(text, tokens)
+        response = response + rt(0)
 
+    if (("что" in tokens) and ("ты" in tokens) and ("уметь" in tokens)) or (("твой" in tokens) and ("навык" in tokens)):
+        ct = lambda m: f"{random.choice(skills)}"
+        response = response + f"Я умею отвечать на простые вопросы (время, дата, погода, базавая арифметика).\nПопробуй спросить: {ct(0)}"
+
+    if (("сколько" in tokens) and (("время" in tokens) or ("времяни" in tokens))) or (("который" in tokens) and ("час" in tokens)):
+        tt = lambda m: data_print()
+        response = response + tt(0)
+    elif (("дата" in tokens) or (("какой" in tokens) and ("сегодня" in tokens) and ("день" in tokens))):
+        dt=lambda m: f"{datetime.date.today()}"
+        response = response + f"Сегодня {dt(0)}"
+
+    if (("погода" in tokens) and ("в" in tokens)):
+        kt=lambda m: f"{weather_print(text)}"
+        response = response + kt(0)
+    noarithmetic=r"[*/](\d+)\s*([+*/\-])\s*(\d+)"
+    arithmetic = "(\d+)\s*([+*/\-])\s*(\d+)"
+
+    if re.search(noarithmetic,text):
+        response=response + "Арифметическое выражение не может начинаться с * или / "
+    elif re.search(arithmetic,text):
+        ct = lambda m: f"{random.choice(calt)} {calculation(text)}"
+        response = response + ct(0)
+
+    response=response + f"{analyze_sentiment(text)}"
+    log_dialog(text, response)
+    return response
 
 if __name__ == "__main__":
     with open("chat_log.txt", "a", encoding="utf-8") as log_file:
